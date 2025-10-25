@@ -9,13 +9,23 @@ export default function BookingModal({ lotId, slot, onClose }) {
   const confirm = async () => {
     setBusy(true);
     try {
-      // Minimal API integration: fallback to local object if backend not ready
-      const payload = { lotId, slotId: slot.id, startsAt: Date.now(), durationMins: 60 };
+      // Backend expects: lotId, slotId, startTime, endTime, price, currency
+      const startTime = new Date().toISOString();
+      const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // +60 minutes
+      const payload = { lotId, slotId: slot.id, startTime, endTime, price: 0, currency: 'usd' };
       try {
-        const res = await api.post('/bookings', payload);
+        const res = await api.post('/bookings/reserve', payload);
         setBooking(res.data);
       } catch {
-        setBooking({ id: `local-${Date.now()}`, ...payload, qr: `BOOK|${lotId}|${slot.id}|${Date.now()}` });
+        // Fallback to local mock booking if backend is not reachable
+        setBooking({
+          id: `local-${Date.now()}`,
+          lotId,
+          slotId: slot.id,
+          startTime,
+          endTime,
+          qr: `BOOK|${lotId}|${slot.id}|${Date.now()}`
+        });
       }
     } finally {
       setBusy(false);
